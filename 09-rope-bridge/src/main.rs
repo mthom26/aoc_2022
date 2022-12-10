@@ -23,7 +23,7 @@ impl Knot {
         self.x -= 1;
     }
 
-    fn follow(&mut self, other: &Knot, map: &mut HashMap<(i32, i32), usize>) {
+    fn follow(&self, other: &Knot) -> Option<(i32, i32)> {
         let x = other.x - self.x;
         let y = other.y - self.y;
 
@@ -43,10 +43,10 @@ impl Knot {
             } else {
                 -1
             };
-            self.x += move_x;
-            self.y += move_y;
-            map.insert((self.x, self.y), 0);
+            Some((move_x, move_y))
             // println!("follow: x {}, y {}", move_x, move_y);
+        } else {
+            None
         }
     }
 }
@@ -55,9 +55,13 @@ fn main() {
     let input = fs::read_to_string("./input.txt").unwrap();
 
     let mut head = Knot::default();
-    let mut tail = Knot::default();
+    // let mut tail = Knot::default();
+    let mut tails: Vec<Knot> = (0..9).into_iter().map(|_| Knot::default()).collect();
+
     let mut map: HashMap<(i32, i32), usize> = HashMap::new();
+    let mut last_map: HashMap<(i32, i32), usize> = HashMap::new();
     map.insert((0, 0), 0);
+    last_map.insert((0, 0), 0);
 
     for line in input.lines() {
         let instruction: Vec<&str> = line.split(" ").collect();
@@ -67,25 +71,25 @@ fn main() {
             "U" => {
                 for _ in 0..i {
                     head.up();
-                    tail.follow(&head, &mut map);
+                    run_follows(&head, &mut tails, &mut map, &mut last_map);
                 }
             }
             "D" => {
                 for _ in 0..i {
                     head.down();
-                    tail.follow(&head, &mut map);
+                    run_follows(&head, &mut tails, &mut map, &mut last_map);
                 }
             }
             "R" => {
                 for _ in 0..i {
                     head.right();
-                    tail.follow(&head, &mut map);
+                    run_follows(&head, &mut tails, &mut map, &mut last_map);
                 }
             }
             "L" => {
                 for _ in 0..i {
                     head.left();
-                    tail.follow(&head, &mut map);
+                    run_follows(&head, &mut tails, &mut map, &mut last_map);
                 }
             }
             _ => {}
@@ -97,4 +101,29 @@ fn main() {
     }
 
     println!("Part 1: {}", map.len());
+    println!("Part 2: {}", last_map.len());
+}
+
+fn run_follows(
+    head: &Knot,
+    tails: &mut Vec<Knot>,
+    map: &mut HashMap<(i32, i32), usize>,
+    last_map: &mut HashMap<(i32, i32), usize>,
+) {
+    if let Some((x, y)) = tails[0].follow(&head) {
+        tails[0].x += x;
+        tails[0].y += y;
+        map.insert((tails[0].x, tails[0].y), 0);
+    }
+    for i in 1..8 {
+        if let Some((x, y)) = tails[i].follow(&tails[i - 1]) {
+            tails[i].x += x;
+            tails[i].y += y;
+        }
+    }
+    if let Some((x, y)) = tails[8].follow(&tails[7]) {
+        tails[8].x += x;
+        tails[8].y += y;
+        last_map.insert((tails[8].x, tails[8].y), 0);
+    }
 }
